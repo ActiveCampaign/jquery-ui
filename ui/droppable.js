@@ -48,7 +48,8 @@ $.widget( "ui.droppable", {
 		deactivate: null,
 		drop: null,
 		out: null,
-		over: null
+		over: null,
+		drag: null
 	},
 	_create: function() {
 
@@ -157,6 +158,21 @@ $.widget( "ui.droppable", {
 				this.element.addClass( this.options.hoverClass );
 			}
 			this._trigger( "over", event, this.ui( draggable ) );
+		}
+
+	},
+
+	_drag: function( event ) {
+
+		var draggable = $.ui.ddmanager.current;
+
+		// Bail if draggable and droppable are same element
+		if ( !draggable || ( draggable.currentItem || draggable.element )[ 0 ] === this.element[ 0 ] ) {
+			return;
+		}
+
+		if ( this.accept.call( this.element[ 0 ], ( draggable.currentItem || draggable.element ) ) ) {
+			this._trigger( "drag", event, this.ui( draggable ) );
 		}
 
 	},
@@ -328,6 +344,7 @@ $.ui.ddmanager = {
 			if ( !this.options ) {
 				return;
 			}
+
 			if ( !this.options.disabled && this.visible && intersect( draggable, this, this.options.tolerance, event ) ) {
 				dropped = this._drop.call( this, event ) || dropped;
 			}
@@ -360,7 +377,7 @@ $.ui.ddmanager = {
 		// Run through all droppables and check their positions based on specific tolerance options
 		$.each( $.ui.ddmanager.droppables[ draggable.options.scope ] || [], function() {
 
-			if ( this.options.disabled || this.greedyChild || !this.visible ) {
+			if ( !this.options || this.options.disabled || this.greedyChild || !this.visible ) {
 				return;
 			}
 
@@ -368,6 +385,10 @@ $.ui.ddmanager = {
 				intersects = intersect( draggable, this, this.options.tolerance, event ),
 				c = !intersects && this.isover ? "isout" : ( intersects && !this.isover ? "isover" : null );
 			if ( !c ) {
+				if (intersects && this.isover) {
+					this._drag.call(this, event);
+				}
+
 				return;
 			}
 
